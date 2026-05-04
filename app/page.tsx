@@ -447,6 +447,7 @@ function AbbreviationLegend({ tally }: { tally: PartyTally[] }) {
 
 export default function Dashboard() {
   const [data, setData] = useState<ApiResponse | null>(null);
+  const [checking, setChecking] = useState(true); // true until initial /api/results check completes
   const [loadingPage, setLoadingPage] = useState(0);
   const [totalPages, setTotalPages] = useState(12);
   const [error, setError] = useState<string | null>(null);
@@ -489,6 +490,7 @@ export default function Dashboard() {
   useEffect(() => {
     async function initialLoad() {
       const res = await fetch("/api/results").catch(() => null);
+      setChecking(false);
       if (res?.ok) {
         const json: ApiResponse = await res.json();
         setData(json);
@@ -496,7 +498,7 @@ export default function Dashboard() {
         return;
       }
 
-      // Cache is cold (first deploy) — stream scrape progress
+      // Cache is cold — stream scrape progress
       setLoadingPage(1);
       const es = new EventSource("/api/scrape-progress");
       es.onmessage = (e) => {
@@ -546,7 +548,7 @@ export default function Dashboard() {
   const allianceTally = data ? tallyByAlliance(data.constituencies) : [];
   const won = tally.reduce((s, p) => s + p.won, 0);
   const leading = tally.reduce((s, p) => s + p.leading, 0);
-  const isLoading = loadingPage > 0;
+  const isLoading = !checking && loadingPage > 0;
 
   return (
     <div className="min-h-screen bg-background">
