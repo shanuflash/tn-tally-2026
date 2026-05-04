@@ -361,28 +361,37 @@ function PartyTable({ tally }: { tally: PartyTally[] }) {
 }
 
 function ConstituencyTable({ constituencies, filter, onFilterChange }: { constituencies: ConstituencyResult[]; filter: string; onFilterChange: (v: string) => void }) {
-  const filtered = filter
+  const q = filter.toLowerCase();
+  const filtered = q
     ? constituencies.filter((c) =>
-        c.leadingParty.toLowerCase().includes(filter.toLowerCase()) ||
-        c.constituency.toLowerCase().includes(filter.toLowerCase()) ||
-        c.leadingCandidate.toLowerCase().includes(filter.toLowerCase())
+        c.constituency.toLowerCase().includes(q) ||
+        c.leadingCandidate.toLowerCase().includes(q) ||
+        c.leadingParty.toLowerCase().includes(q) ||
+        shortenParty(c.leadingParty).toLowerCase().includes(q)
       )
     : constituencies;
 
   return (
     <Card className="border-border/60">
       <CardHeader className="pb-3">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <div className="flex items-center justify-between flex-1">
-            <CardTitle className="text-sm font-semibold">Constituencies</CardTitle>
-            <span className="text-xs text-muted-foreground">{filtered.length} of {constituencies.length}</span>
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex items-center justify-between flex-1">
+              <CardTitle className="text-sm font-semibold">Constituencies</CardTitle>
+              <span className="text-xs text-muted-foreground">{filtered.length} of {constituencies.length}</span>
+            </div>
+            <Input
+              placeholder="Search…"
+              value={filter}
+              onChange={(e) => onFilterChange(e.target.value)}
+              className="h-8 text-xs sm:max-w-xs"
+            />
           </div>
-          <Input
-            placeholder="Filter by constituency, party or candidate…"
-            value={filter}
-            onChange={(e) => onFilterChange(e.target.value)}
-            className="h-8 text-xs sm:max-w-xs"
-          />
+          {filter && (
+            <p className="text-[11px] text-muted-foreground/60">
+              Searching by constituency · leading candidate · party (e.g. DMK, TVK, AIADMK)
+            </p>
+          )}
         </div>
       </CardHeader>
       <CardContent className="pt-0 px-0">
