@@ -249,19 +249,12 @@ function AllianceCard({ a, majority }: { a: AllianceTally; majority: number }) {
       </div>
 
       {/* big number */}
-      <div className="flex items-end gap-3">
-        <div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-6xl font-black tracking-tighter leading-none" style={{ color }}>{a.won}</span>
-            <span className="text-2xl font-semibold text-muted-foreground">+{a.leading}</span>
-          </div>
-          <div className="flex items-center gap-2 mt-1">
-            <p className="text-[11px] text-muted-foreground">won</p>
-            <span className="text-muted-foreground/40">·</span>
-            <p className="text-[11px] text-muted-foreground">leading</p>
-            <span className="text-muted-foreground/40">·</span>
-            <p className="text-[11px] font-semibold text-foreground">{a.total} total</p>
-          </div>
+      <div>
+        <span className="text-6xl font-black tracking-tighter leading-none" style={{ color }}>{a.total}</span>
+        <div className="flex items-center gap-2 mt-1.5">
+          <span className="text-[11px] font-semibold text-foreground">{a.won} won</span>
+          <span className="text-muted-foreground/40">·</span>
+          <span className="text-[11px] text-muted-foreground">{a.leading} leading</span>
         </div>
       </div>
 
