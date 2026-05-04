@@ -184,6 +184,8 @@ function tallyByAlliance(constituencies: ConstituencyResult[]): AllianceTally[] 
     .filter((a) => a.total > 0);
 }
 
+const STOP_AT = new Date("2026-05-05T00:00:00+05:30").getTime();
+
 /** ms until the next wall-clock 2-min boundary (10:00, 10:02, 10:04, …) */
 function msUntilNextSlot(): number {
   const now = new Date();
@@ -466,8 +468,12 @@ export default function Dashboard() {
     }
   }, []);
 
-  /** Schedule next fetch at the next wall-clock 5-min boundary */
+  /** Schedule next fetch at the next wall-clock 2-min boundary */
   const scheduleNextFetch = useCallback(() => {
+    if (Date.now() >= STOP_AT) {
+      setNextRefreshAt(null);
+      return;
+    }
     if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
     const ms = msUntilNextSlot();
     const at = new Date(Date.now() + ms);
@@ -475,7 +481,7 @@ export default function Dashboard() {
     setCountdown(Math.floor(ms / 1000));
     refreshTimerRef.current = setTimeout(() => {
       fetchResults();
-      scheduleNextFetch(); // reschedule for the slot after that
+      scheduleNextFetch();
     }, ms);
   }, [fetchResults]);
 
