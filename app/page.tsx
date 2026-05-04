@@ -6,7 +6,6 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -109,7 +108,6 @@ const ALLIANCE_MAP: Record<string, "DMK" | "AIADMK" | "TVK" | "OTHER"> = {
 const ALLIANCE_COLORS = { DMK: "#E63946", AIADMK: "#2DC653", TVK: "#06D6A0", OTHER: "#6b7280" };
 const ALLIANCE_LABELS = { DMK: "DMK Alliance", AIADMK: "AIADMK Alliance", TVK: "TVK", OTHER: "Others" };
 const ALLIANCE_SUBLABELS = { DMK: "Secular Progressive Alliance", AIADMK: "NDA Tamil Nadu", TVK: "Contesting independently", OTHER: "" };
-
 const ALLIANCE_PARTIES: Record<"DMK" | "AIADMK" | "TVK" | "OTHER", string[]> = {
   DMK: ["DMK", "INC", "VCK", "CPI", "CPM", "IUML", "MDMK", "MMK", "KMDK", "AIFB"],
   AIADMK: ["AIADMK", "BJP", "PMK", "TMC(M)", "IJK"],
@@ -118,21 +116,24 @@ const ALLIANCE_PARTIES: Record<"DMK" | "AIADMK" | "TVK" | "OTHER", string[]> = {
 };
 
 const PARTY_COLORS: Record<string, string> = {
-  DMK: "#FF0000",     // Red (flag primary)
-  AIADMK: "#10B981",  // Green (distinct from DMK red; party uses black+red but green is used on dashboards)
-  TVK: "#8B0000",     // Dark maroon (flag top/bottom band)
-  BJP: "#F97D09",     // Saffron/orange (flag primary)
-  INC: "#138808",     // Congress green (wheel)
-  VCK: "#0099FF",     // Sky blue (flag primary)
-  CPI: "#CC0000",     // Communist red (slightly darker)
-  CPM: "#E53E3E",     // Communist red (slightly different shade)
-  PMK: "#2563EB",     // Blue (flag top band)
-  IUML: "#006600",    // Dark green (flag primary)
-  MDMK: "#B91C1C",    // Deep red (flag)
-  NTK: "#DC2626",     // Red (flag)
-  MNM: "#7C3AED",     // Purple (torch symbol)
-  IND: "#6b7280",     // Gray
+  DMK: "#FF0000",
+  AIADMK: "#10B981",
+  TVK: "#8B0000",
+  BJP: "#F97D09",
+  INC: "#138808",
+  VCK: "#0099FF",
+  CPI: "#CC0000",
+  CPM: "#E53E3E",
+  PMK: "#2563EB",
+  IUML: "#006600",
+  MDMK: "#B91C1C",
+  NTK: "#DC2626",
+  MNM: "#7C3AED",
+  IND: "#6b7280",
 };
+
+const STOP_AT = new Date("2026-05-05T00:00:00+05:30").getTime();
+const TOTAL_SEATS = 234;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -154,7 +155,7 @@ function getPartyColor(party: string, index: number): string {
   const upper = party.toUpperCase();
   const key = Object.keys(PARTY_COLORS).find((k) => upper.includes(k));
   if (key) return PARTY_COLORS[key];
-  const fallbacks = ["#6366f1","#8b5cf6","#ec4899","#14b8a6","#f59e0b","#10b981","#3b82f6","#ef4444"];
+  const fallbacks = ["#6366f1", "#8b5cf6", "#ec4899", "#14b8a6", "#f59e0b", "#10b981", "#3b82f6", "#ef4444"];
   return fallbacks[index % fallbacks.length];
 }
 
@@ -179,95 +180,113 @@ function tallyByAlliance(constituencies: ConstituencyResult[]): AllianceTally[] 
     if (ex) { if (isWon) ex.won++; else ex.leading++; ex.total++; }
     else map.set(a, { alliance: a, won: isWon ? 1 : 0, leading: isWon ? 0 : 1, total: 1 });
   }
-  return (["DMK","AIADMK","TVK","OTHER"] as const)
+  return (["DMK", "AIADMK", "TVK", "OTHER"] as const)
     .map((a) => map.get(a) ?? { alliance: a, won: 0, leading: 0, total: 0 })
     .filter((a) => a.total > 0);
 }
 
-const STOP_AT = new Date("2026-05-05T00:00:00+05:30").getTime();
-
-/** ms until the next wall-clock 2-min boundary (10:00, 10:02, 10:04, …) */
 function msUntilNextSlot(): number {
-  const now = new Date();
-  const ms = now.getTime();
   const slotMs = 2 * 60 * 1000;
-  return slotMs - (ms % slotMs);
+  return slotMs - (Date.now() % slotMs);
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ─── Components ───────────────────────────────────────────────────────────────
 
 function ProgressLoader({ page, total }: { page: number; total: number }) {
   const pct = total > 0 ? Math.round((page / total) * 100) : 0;
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-8">
-      <div className="text-center space-y-1">
-        <p className="text-sm font-medium text-foreground">Fetching live results</p>
-        <p className="text-xs text-muted-foreground">
-          Page {page} of {total || "?"} · Election Commission of India
+    <div className="flex flex-col items-center justify-center min-h-[70vh] gap-10">
+      <div className="text-center space-y-2">
+        <p className="text-base font-semibold">Fetching live results</p>
+        <p className="text-sm text-muted-foreground">
+          {total > 0 ? `Page ${page} of ${total}` : "Connecting…"} · Election Commission of India
         </p>
       </div>
-      <div className="w-72 space-y-3">
-        <div className="flex justify-between text-xs text-muted-foreground">
-          <span>Progress</span>
-          <span>{pct}%</span>
-        </div>
-        <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
+      <div className="w-80 space-y-4">
+        <div className="h-[2px] w-full bg-muted rounded-full overflow-hidden">
           <div
             className="h-full bg-foreground rounded-full transition-all duration-500 ease-out"
-            style={{ width: `${pct}%` }}
+            style={{ width: total > 0 ? `${pct}%` : "10%" }}
           />
         </div>
         {total > 0 && (
-          <div className="flex gap-1 justify-between">
+          <div className="flex gap-1">
             {Array.from({ length: total }, (_, i) => (
-              <div key={i} className={`flex-1 h-0.5 rounded-full transition-colors duration-300 ${i < page ? "bg-foreground" : "bg-muted"}`} />
+              <div
+                key={i}
+                className={`flex-1 h-[3px] rounded-full transition-colors duration-300 ${i < page ? "bg-foreground" : "bg-muted"}`}
+              />
             ))}
           </div>
         )}
+        <p className="text-center text-xs text-muted-foreground">{pct}%</p>
       </div>
-      <p className="text-xs text-muted-foreground">First load takes ~60s · auto-refreshes every 2 min</p>
     </div>
   );
 }
 
-function AllianceCard({ a }: { a: AllianceTally }) {
+function AllianceCard({ a, majority }: { a: AllianceTally; majority: number }) {
   const color = ALLIANCE_COLORS[a.alliance];
   const parties = ALLIANCE_PARTIES[a.alliance];
+  const pct = Math.round((a.total / TOTAL_SEATS) * 100);
+
   return (
-    <Card className="relative overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm">
-      <div className="absolute inset-x-0 top-0 h-0.5" style={{ backgroundColor: color }} />
-      <CardHeader className="pb-2 pt-5">
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-          <CardTitle className="text-sm font-semibold">{ALLIANCE_LABELS[a.alliance]}</CardTitle>
+    <div className="relative rounded-2xl border border-border/60 bg-card overflow-hidden p-6 flex flex-col gap-4">
+      {/* color bar top */}
+      <div className="absolute inset-x-0 top-0 h-[3px]" style={{ backgroundColor: color }} />
+
+      {/* header */}
+      <div>
+        <div className="flex items-center gap-2 mb-0.5">
+          <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+          <span className="text-sm font-semibold">{ALLIANCE_LABELS[a.alliance]}</span>
+          {a.total >= majority && (
+            <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: color + "22", color }}>
+              MAJORITY
+            </span>
+          )}
         </div>
         <p className="text-xs text-muted-foreground pl-4">{ALLIANCE_SUBLABELS[a.alliance]}</p>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <div className="flex items-baseline gap-1">
-          <span className="text-5xl font-bold tracking-tight" style={{ color }}>{a.won}</span>
-          <span className="text-lg text-muted-foreground font-medium">+{a.leading}</span>
+      </div>
+
+      {/* big number */}
+      <div className="flex items-end gap-3">
+        <span className="text-6xl font-black tracking-tighter leading-none" style={{ color }}>{a.total}</span>
+        <div className="mb-1 space-y-0.5">
+          <p className="text-xs text-muted-foreground"><span className="font-semibold text-foreground">{a.won}</span> won</p>
+          <p className="text-xs text-muted-foreground"><span className="font-semibold text-foreground">{a.leading}</span> leading</p>
         </div>
-        <div className="flex gap-3 mt-2 text-xs text-muted-foreground">
-          <span><span className="font-medium text-foreground">{a.won}</span> won</span>
-          <span><span className="font-medium text-foreground">{a.leading}</span> leading</span>
-          <span className="ml-auto"><span className="font-medium text-foreground">{a.total}</span> total</span>
+      </div>
+
+      {/* seat bar */}
+      <div className="space-y-1.5">
+        <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-700"
+            style={{ width: `${pct}%`, backgroundColor: color }}
+          />
         </div>
-        {parties.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-3 pt-3 border-t border-border/40">
-            {parties.map((p) => (
-              <span
-                key={p}
-                className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold"
-                style={{ backgroundColor: color + "18", color }}
-              >
-                {p}
-              </span>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+        <div className="flex justify-between text-[10px] text-muted-foreground">
+          <span>{pct}% of seats</span>
+          <span>{TOTAL_SEATS / 2 + 1} needed for majority</span>
+        </div>
+      </div>
+
+      {/* party chips */}
+      {parties.length > 0 && (
+        <div className="flex flex-wrap gap-1 pt-2 border-t border-border/40">
+          {parties.map((p) => (
+            <span
+              key={p}
+              className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+              style={{ backgroundColor: color + "18", color }}
+            >
+              {p}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -275,9 +294,8 @@ function PartyChart({ tally }: { tally: PartyTally[] }) {
   const chartConfig = Object.fromEntries(
     tally.map((p, i) => [p.short, { label: p.short, color: getPartyColor(p.party, i) }])
   );
-
   return (
-    <Card className="border-border/50 bg-card/50">
+    <Card className="border-border/60">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-semibold">Party tally</CardTitle>
         <p className="text-xs text-muted-foreground">Solid = won · faded = leading</p>
@@ -285,15 +303,7 @@ function PartyChart({ tally }: { tally: PartyTally[] }) {
       <CardContent className="pt-0">
         <ChartContainer config={chartConfig} className="h-64 w-full">
           <BarChart data={tally} margin={{ top: 4, right: 4, left: -20, bottom: 52 }}>
-            <XAxis
-              dataKey="short"
-              tick={{ fontSize: 10 }}
-              angle={-45}
-              textAnchor="end"
-              interval={0}
-              axisLine={false}
-              tickLine={false}
-            />
+            <XAxis dataKey="short" tick={{ fontSize: 10 }} angle={-45} textAnchor="end" interval={0} axisLine={false} tickLine={false} />
             <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
             <ChartTooltip content={<ChartTooltipContent />} cursor={{ fill: "hsl(var(--muted))", opacity: 0.5 }} />
             <Bar dataKey="won" name="Won" stackId="a" radius={[0, 0, 0, 0]}>
@@ -311,7 +321,7 @@ function PartyChart({ tally }: { tally: PartyTally[] }) {
 
 function PartyTable({ tally }: { tally: PartyTally[] }) {
   return (
-    <Card className="border-border/50 bg-card/50">
+    <Card className="border-border/60">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-semibold">Party breakdown</CardTitle>
       </CardHeader>
@@ -333,7 +343,7 @@ function PartyTable({ tally }: { tally: PartyTally[] }) {
                   <td className="py-2 pr-3 text-muted-foreground">{i + 1}</td>
                   <td className="py-2 pr-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: getPartyColor(p.party, i) }} />
+                      <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: getPartyColor(p.party, i) }} />
                       <span className="font-medium">{p.short}</span>
                     </div>
                   </td>
@@ -360,7 +370,7 @@ function ConstituencyTable({ constituencies, filter }: { constituencies: Constit
     : constituencies;
 
   return (
-    <Card className="border-border/50 bg-card/50">
+    <Card className="border-border/60">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-semibold">Constituencies</CardTitle>
@@ -403,7 +413,7 @@ function ConstituencyTable({ constituencies, filter }: { constituencies: Constit
                     <td className="py-2.5 pr-4 whitespace-nowrap">{c.leadingCandidate}</td>
                     <td className="py-2.5 pr-4">
                       <span
-                        className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold whitespace-nowrap"
+                        className="inline-block px-1.5 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap"
                         style={{ backgroundColor: allianceColor + "22", color: allianceColor }}
                       >
                         {shortenParty(c.leadingParty)}
@@ -424,16 +434,16 @@ function ConstituencyTable({ constituencies, filter }: { constituencies: Constit
 
 function AbbreviationLegend({ tally }: { tally: PartyTally[] }) {
   return (
-    <Card className="border-border/50 bg-card/50">
+    <Card className="border-border/60">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-semibold">Party abbreviations</CardTitle>
       </CardHeader>
       <CardContent className="pt-0">
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-6 gap-y-1.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-6 gap-y-2">
           {tally.map((p, i) => (
             <div key={p.party} className="flex items-center gap-2 text-xs">
-              <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: getPartyColor(p.party, i) }} />
-              <span className="font-semibold text-foreground flex-shrink-0 w-14">{p.short}</span>
+              <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: getPartyColor(p.party, i) }} />
+              <span className="font-semibold w-14 shrink-0">{p.short}</span>
               <span className="text-muted-foreground truncate">{p.party}</span>
             </div>
           ))}
@@ -447,7 +457,7 @@ function AbbreviationLegend({ tally }: { tally: PartyTally[] }) {
 
 export default function Dashboard() {
   const [data, setData] = useState<ApiResponse | null>(null);
-  const [checking, setChecking] = useState(true); // true until initial /api/results check completes
+  const [checking, setChecking] = useState(true);
   const [loadingPage, setLoadingPage] = useState(0);
   const [totalPages, setTotalPages] = useState(12);
   const [error, setError] = useState<string | null>(null);
@@ -456,126 +466,91 @@ export default function Dashboard() {
   const [countdown, setCountdown] = useState(0);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  /** Fetch from /api/results (instant — just reads server cache) */
   const fetchResults = useCallback(async () => {
     try {
       const res = await fetch("/api/results");
-      if (!res.ok) return; // 503 means cache cold — initial SSE load still running
-      const json: ApiResponse = await res.json();
-      setData(json);
+      if (!res.ok) return;
+      setData(await res.json());
       setError(null);
-    } catch {
-      // network blip — keep showing existing data
-    }
+    } catch { /* keep existing data */ }
   }, []);
 
-  /** Schedule next fetch at the next wall-clock 2-min boundary */
   const scheduleNextFetch = useCallback(() => {
-    if (Date.now() >= STOP_AT) {
-      setNextRefreshAt(null);
-      return;
-    }
+    if (Date.now() >= STOP_AT) { setNextRefreshAt(null); return; }
     if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
     const ms = msUntilNextSlot();
-    const at = new Date(Date.now() + ms);
-    setNextRefreshAt(at);
+    setNextRefreshAt(new Date(Date.now() + ms));
     setCountdown(Math.floor(ms / 1000));
-    refreshTimerRef.current = setTimeout(() => {
-      fetchResults();
-      scheduleNextFetch();
-    }, ms);
+    refreshTimerRef.current = setTimeout(() => { fetchResults(); scheduleNextFetch(); }, ms);
   }, [fetchResults]);
 
-  /** Initial load: try /api/results first; if cold, fall back to SSE progress stream */
   useEffect(() => {
     async function initialLoad() {
       const res = await fetch("/api/results").catch(() => null);
       setChecking(false);
       if (res?.ok) {
-        const json: ApiResponse = await res.json();
-        setData(json);
+        setData(await res.json());
         scheduleNextFetch();
         return;
       }
-
-      // Cache is cold — stream scrape progress
       setLoadingPage(1);
       const es = new EventSource("/api/scrape-progress");
       es.onmessage = (e) => {
         const msg = JSON.parse(e.data);
-        if (msg.type === "cached") {
+        if (msg.type === "cached" || msg.type === "done") {
           setData(msg.data);
+          if (msg.data?.totalPages) setTotalPages(msg.data.totalPages);
           setLoadingPage(0);
           es.close();
           scheduleNextFetch();
-        } else if (msg.type === "start") {
-          setLoadingPage(1);
         } else if (msg.type === "progress") {
           setTotalPages(msg.total);
           setLoadingPage(msg.page);
-        } else if (msg.type === "done") {
-          setData(msg.data);
-          setTotalPages(msg.data.totalPages);
-          setLoadingPage(0);
-          es.close();
-          scheduleNextFetch();
         } else if (msg.type === "error") {
           setError(msg.message);
           setLoadingPage(0);
           es.close();
         }
       };
-      es.onerror = () => {
-        setError("Connection lost. Try refreshing.");
-        setLoadingPage(0);
-        es.close();
-      };
+      es.onerror = () => { setError("Connection lost. Try refreshing."); setLoadingPage(0); es.close(); };
     }
-
     initialLoad();
     return () => { if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current); };
   }, [scheduleNextFetch]);
 
-  /** Countdown ticker */
   useEffect(() => {
-    const t = setInterval(() => {
-      setCountdown((c) => (c > 0 ? c - 1 : 0));
-    }, 1000);
+    const t = setInterval(() => setCountdown((c) => (c > 0 ? c - 1 : 0)), 1000);
     return () => clearInterval(t);
   }, []);
 
   const tally = data ? tallyByParty(data.constituencies) : [];
   const allianceTally = data ? tallyByAlliance(data.constituencies) : [];
-  const won = tally.reduce((s, p) => s + p.won, 0);
+  const declared = tally.reduce((s, p) => s + p.won, 0);
   const leading = tally.reduce((s, p) => s + p.leading, 0);
+  const majority = Math.floor(TOTAL_SEATS / 2) + 1;
   const isLoading = !checking && loadingPage > 0;
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-sm font-semibold tracking-tight">Tamil Nadu Elections 2026</h1>
-            <p className="text-[11px] text-muted-foreground">Election Commission of India · Live</p>
+        <div className="max-w-6xl mx-auto px-5 h-14 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div>
+              <h1 className="text-sm font-bold tracking-tight leading-none">TN Elections 2026</h1>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Live · Election Commission of India</p>
+            </div>
           </div>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             {data && !isLoading && (
-              <span>Updated {new Date(data.fetchedAt).toLocaleTimeString("en-IN")}</span>
+              <span className="hidden sm:block">Updated {new Date(data.fetchedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span>
             )}
             {!isLoading && nextRefreshAt && (
-              <span className="font-mono tabular-nums" title={`Next refresh at ${nextRefreshAt.toLocaleTimeString("en-IN")}`}>
+              <span className="font-mono tabular-nums" title={`Next at ${nextRefreshAt.toLocaleTimeString("en-IN")}`}>
                 {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, "0")}
               </span>
             )}
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={fetchResults}
-              disabled={isLoading}
-              className="h-7 text-xs"
-            >
-              {isLoading ? "Scraping…" : "Refresh"}
+            <Button size="sm" variant="outline" onClick={fetchResults} disabled={isLoading} className="h-7 text-xs px-3">
+              {isLoading ? "Loading…" : "Refresh"}
             </Button>
           </div>
         </div>
@@ -584,39 +559,33 @@ export default function Dashboard() {
       {isLoading && <ProgressLoader page={loadingPage} total={totalPages} />}
 
       {error && (
-        <div className="max-w-7xl mx-auto px-6 pt-6">
-          <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            {error}
-          </div>
+        <div className="max-w-6xl mx-auto px-5 pt-6">
+          <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div>
         </div>
       )}
 
       {!isLoading && data && (
-        <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+        <main className="max-w-6xl mx-auto px-5 py-8 space-y-8">
 
           {/* Alliance scoreboard */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {allianceTally.map((a) => <AllianceCard key={a.alliance} a={a} />)}
+            {allianceTally.map((a) => <AllianceCard key={a.alliance} a={a} majority={majority} />)}
           </div>
 
-          <Separator className="opacity-30" />
-
-          {/* Summary stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* Summary strip */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: "Total constituencies", value: data.constituencies.length },
-              { label: "Parties in race", value: tally.length },
-              { label: "Results declared", value: won },
+              { label: "Total seats", value: data.constituencies.length },
+              { label: "Majority mark", value: majority },
+              { label: "Results declared", value: declared },
               { label: "Counting in progress", value: leading },
             ].map(({ label, value }) => (
-              <div key={label} className="space-y-1">
-                <p className="text-xs text-muted-foreground">{label}</p>
-                <p className="text-2xl font-bold tabular-nums">{value}</p>
+              <div key={label} className="rounded-xl border border-border/60 bg-card px-4 py-3">
+                <p className="text-[11px] text-muted-foreground">{label}</p>
+                <p className="text-2xl font-bold tabular-nums mt-0.5">{value}</p>
               </div>
             ))}
           </div>
-
-          <Separator className="opacity-30" />
 
           {/* Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -630,7 +599,7 @@ export default function Dashboard() {
               placeholder="Filter by constituency, party or candidate…"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="max-w-sm h-8 text-xs bg-card/50 border-border/50"
+              className="max-w-sm h-8 text-xs"
             />
             <ConstituencyTable constituencies={data.constituencies} filter={filter} />
           </div>
