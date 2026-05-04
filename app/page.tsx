@@ -593,7 +593,7 @@ export default function Dashboard() {
         <main className="max-w-6xl mx-auto px-4 sm:px-5 py-6 sm:py-8 space-y-6 sm:space-y-8">
 
           {/* Alliance scoreboard */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {allianceTally.map((a) => <AllianceCard key={a.alliance} a={a} majority={majority} />)}
           </div>
 
