@@ -234,24 +234,24 @@ function AllianceCard({ a, majority }: { a: AllianceTally; majority: number }) {
 
   return (
     <div className="rounded-2xl border border-border/60 bg-card overflow-hidden flex flex-col">
-      <div className="p-5 flex flex-col gap-4 flex-1">
+      <div className="p-4 sm:p-5 flex flex-col gap-3 flex-1">
 
         {/* name + majority */}
         <div className="flex items-center justify-between gap-1">
           <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">{ALLIANCE_LABELS[a.alliance]}</p>
           {hasMajority && (
-            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: color + "20", color }}>
-              ✓ MAJORITY
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{ backgroundColor: color + "20", color }}>
+              ✓ MAJ
             </span>
           )}
         </div>
 
-        {/* total + won/leading */}
-        <div className="flex items-center gap-4">
-          <span className="text-6xl font-black tracking-tighter leading-none" style={{ color }}>{a.total}</span>
-          <div className="flex flex-col gap-1.5">
+        {/* total + won/leading — min-w prevents clipping on small cards */}
+        <div className="flex items-center gap-3">
+          <span className="text-5xl sm:text-6xl font-black tracking-tighter leading-none shrink-0" style={{ color }}>{a.total}</span>
+          <div className="flex flex-col gap-1 min-w-0">
             <div className="flex items-baseline gap-1">
-              <span className="text-lg font-bold leading-none">{a.won}</span>
+              <span className="text-base sm:text-lg font-bold leading-none">{a.won}</span>
               <span className="text-[10px] text-muted-foreground">won</span>
             </div>
             <div className="flex items-baseline gap-1">
@@ -275,7 +275,7 @@ function AllianceCard({ a, majority }: { a: AllianceTally; majority: number }) {
       </div>
 
       {/* progress bar pinned to bottom */}
-      <div className="px-5 pb-4 space-y-1.5">
+      <div className="px-4 sm:px-5 pb-4 space-y-1.5">
         <div className="relative h-1.5 w-full bg-muted rounded-full overflow-hidden">
           <div className="absolute left-0 top-0 h-full transition-all duration-700"
             style={{ width: `${wonPct}%`, backgroundColor: color }} />
@@ -360,7 +360,7 @@ function PartyTable({ tally }: { tally: PartyTally[] }) {
   );
 }
 
-function ConstituencyTable({ constituencies, filter }: { constituencies: ConstituencyResult[]; filter: string }) {
+function ConstituencyTable({ constituencies, filter, onFilterChange }: { constituencies: ConstituencyResult[]; filter: string; onFilterChange: (v: string) => void }) {
   const filtered = filter
     ? constituencies.filter((c) =>
         c.leadingParty.toLowerCase().includes(filter.toLowerCase()) ||
@@ -372,25 +372,33 @@ function ConstituencyTable({ constituencies, filter }: { constituencies: Constit
   return (
     <Card className="border-border/60">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-semibold">Constituencies</CardTitle>
-          <span className="text-xs text-muted-foreground">{filtered.length} of {constituencies.length}</span>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex items-center justify-between flex-1">
+            <CardTitle className="text-sm font-semibold">Constituencies</CardTitle>
+            <span className="text-xs text-muted-foreground">{filtered.length} of {constituencies.length}</span>
+          </div>
+          <Input
+            placeholder="Filter by constituency, party or candidate…"
+            value={filter}
+            onChange={(e) => onFilterChange(e.target.value)}
+            className="h-8 text-xs sm:max-w-xs"
+          />
         </div>
       </CardHeader>
       <CardContent className="pt-0 px-0">
-        <div className="overflow-auto max-h-[560px]">
-          <table className="w-full text-xs">
+        <div className="overflow-x-auto max-h-[560px]">
+          <table className="w-full text-xs min-w-[540px]">
             <thead className="sticky top-0 bg-card z-10">
               <tr className="text-muted-foreground border-b border-border">
                 <th className="text-left py-2 px-4 font-medium whitespace-nowrap">No.</th>
                 <th className="text-left py-2 pr-4 font-medium whitespace-nowrap">Constituency</th>
                 <th className="text-left py-2 pr-4 font-medium whitespace-nowrap">Status</th>
                 <th className="text-right py-2 pr-4 font-medium whitespace-nowrap">Margin</th>
-                <th className="text-center py-2 pr-4 font-medium whitespace-nowrap">Round</th>
+                <th className="text-center py-2 pr-4 font-medium whitespace-nowrap hidden sm:table-cell">Round</th>
                 <th className="text-left py-2 pr-4 font-medium whitespace-nowrap">Leading</th>
                 <th className="text-left py-2 pr-4 font-medium whitespace-nowrap">Party</th>
-                <th className="text-left py-2 pr-4 font-medium whitespace-nowrap">Trailing</th>
-                <th className="text-left py-2 pr-4 font-medium whitespace-nowrap">Party</th>
+                <th className="text-left py-2 pr-4 font-medium whitespace-nowrap hidden md:table-cell">Trailing</th>
+                <th className="text-left py-2 pr-4 font-medium whitespace-nowrap hidden md:table-cell">Party</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/30">
@@ -409,8 +417,8 @@ function ConstituencyTable({ constituencies, filter }: { constituencies: Constit
                     <td className="py-2.5 pr-4 text-right font-mono font-semibold tabular-nums whitespace-nowrap">
                       {c.margin.toLocaleString("en-IN")}
                     </td>
-                    <td className="py-2.5 pr-4 text-center text-muted-foreground whitespace-nowrap">{c.round}</td>
-                    <td className="py-2.5 pr-4 whitespace-nowrap">{c.leadingCandidate}</td>
+                    <td className="py-2.5 pr-4 text-center text-muted-foreground whitespace-nowrap hidden sm:table-cell">{c.round}</td>
+                    <td className="py-2.5 pr-4 whitespace-nowrap max-w-[140px] truncate">{c.leadingCandidate}</td>
                     <td className="py-2.5 pr-4">
                       <span
                         className="inline-block px-1.5 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap"
@@ -419,8 +427,8 @@ function ConstituencyTable({ constituencies, filter }: { constituencies: Constit
                         {shortenParty(c.leadingParty)}
                       </span>
                     </td>
-                    <td className="py-2.5 pr-4 text-muted-foreground whitespace-nowrap">{c.trailingCandidate}</td>
-                    <td className="py-2.5 pr-4 text-muted-foreground whitespace-nowrap">{shortenParty(c.trailingParty)}</td>
+                    <td className="py-2.5 pr-4 text-muted-foreground whitespace-nowrap max-w-[140px] truncate hidden md:table-cell">{c.trailingCandidate}</td>
+                    <td className="py-2.5 pr-4 text-muted-foreground whitespace-nowrap hidden md:table-cell">{shortenParty(c.trailingParty)}</td>
                   </tr>
                 );
               })}
@@ -541,22 +549,22 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
-        <div className="max-w-6xl mx-auto px-5 h-14 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div>
-              <h1 className="text-sm font-bold tracking-tight leading-none">TN Elections 2026</h1>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Live · Election Commission of India</p>
-            </div>
+        <div className="max-w-6xl mx-auto px-4 sm:px-5 h-14 flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-sm font-bold tracking-tight leading-none">TN Elections 2026</h1>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Live · Election Commission of India</p>
           </div>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 sm:gap-3 text-xs text-muted-foreground">
             {justUpdated && (
-              <span className="text-emerald-400 font-semibold animate-pulse">New data</span>
+              <span className="text-emerald-400 font-semibold animate-pulse">Updated</span>
             )}
             {data && !isLoading && !justUpdated && (
-              <span className="hidden sm:block">Updated {new Date(data.fetchedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span>
+              <span className="text-muted-foreground">
+                {new Date(data.fetchedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+              </span>
             )}
             {!isLoading && nextRefreshAt && (
-              <span className="font-mono tabular-nums" title={`Next at ${nextRefreshAt.toLocaleTimeString("en-IN")}`}>
+              <span className="font-mono tabular-nums text-muted-foreground/70" title={`Next refresh at ${nextRefreshAt.toLocaleTimeString("en-IN")}`}>
                 {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, "0")}
               </span>
             )}
@@ -573,22 +581,22 @@ export default function Dashboard() {
       )}
 
       {!isLoading && data && (
-        <main className="max-w-6xl mx-auto px-5 py-8 space-y-8">
+        <main className="max-w-6xl mx-auto px-4 sm:px-5 py-6 sm:py-8 space-y-6 sm:space-y-8">
 
           {/* Alliance scoreboard */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {allianceTally.map((a) => <AllianceCard key={a.alliance} a={a} majority={majority} />)}
           </div>
 
-          {/* Summary strip */}
-          <div className="flex items-center divide-x divide-border/50">
+          {/* Summary strip — 2×2 on mobile, 4-col on sm+ */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 rounded-2xl border border-border/60 bg-card p-4 sm:p-5">
             {[
-              { label: "Total seats", value: data.constituencies.length },
-              { label: "Majority mark", value: majority },
-              { label: "Results declared", value: declared },
+              { label: "Total Seats", value: data.constituencies.length },
+              { label: "Majority Mark", value: majority },
+              { label: "Results Declared", value: declared },
               { label: "Counting", value: leading },
             ].map(({ label, value }) => (
-              <div key={label} className="flex-1 px-5 first:pl-0 last:pr-0">
+              <div key={label}>
                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground/70 font-medium">{label}</p>
                 <p className="text-3xl font-black tabular-nums leading-tight mt-0.5">{value}</p>
               </div>
@@ -601,16 +609,8 @@ export default function Dashboard() {
             <PartyTable tally={tally} />
           </div>
 
-          {/* Constituency table */}
-          <div className="space-y-3">
-            <Input
-              placeholder="Filter by constituency, party or candidate…"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="max-w-sm h-8 text-xs"
-            />
-            <ConstituencyTable constituencies={data.constituencies} filter={filter} />
-          </div>
+          {/* Constituency table — filter is inside the card header */}
+          <ConstituencyTable constituencies={data.constituencies} filter={filter} onFilterChange={setFilter} />
 
           {/* Legend */}
           <AbbreviationLegend tally={tally} />
