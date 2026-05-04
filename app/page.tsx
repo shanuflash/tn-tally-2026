@@ -251,12 +251,17 @@ function AllianceCard({ a, majority }: { a: AllianceTally; majority: number }) {
       {/* big number */}
       <div className="flex items-end gap-3">
         <div>
-          <span className="text-6xl font-black tracking-tighter leading-none" style={{ color }}>{a.won}</span>
-          <p className="text-[11px] text-muted-foreground mt-1">seats won</p>
-        </div>
-        <div className="mb-2 pl-2 border-l border-border/50">
-          <p className="text-xl font-bold tabular-nums text-muted-foreground">+{a.leading}</p>
-          <p className="text-[11px] text-muted-foreground">leading</p>
+          <div className="flex items-baseline gap-2">
+            <span className="text-6xl font-black tracking-tighter leading-none" style={{ color }}>{a.won}</span>
+            <span className="text-2xl font-semibold text-muted-foreground">+{a.leading}</span>
+          </div>
+          <div className="flex items-center gap-2 mt-1">
+            <p className="text-[11px] text-muted-foreground">won</p>
+            <span className="text-muted-foreground/40">·</span>
+            <p className="text-[11px] text-muted-foreground">leading</p>
+            <span className="text-muted-foreground/40">·</span>
+            <p className="text-[11px] font-semibold text-foreground">{a.total} total</p>
+          </div>
         </div>
       </div>
 
@@ -269,7 +274,7 @@ function AllianceCard({ a, majority }: { a: AllianceTally; majority: number }) {
           />
         </div>
         <div className="flex justify-between text-[10px] text-muted-foreground">
-          <span>{a.total} total · {pct}% of seats</span>
+          <span>{pct}% of seats</span>
           <span>{majority} for majority</span>
         </div>
       </div>
