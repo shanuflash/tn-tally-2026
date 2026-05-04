@@ -6,7 +6,6 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -549,9 +548,6 @@ export default function Dashboard() {
                 {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, "0")}
               </span>
             )}
-            <Button size="sm" variant="outline" onClick={fetchResults} disabled={isLoading} className="h-7 text-xs px-3">
-              {isLoading ? "Loading…" : "Refresh"}
-            </Button>
           </div>
         </div>
       </header>
