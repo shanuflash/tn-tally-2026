@@ -1,5 +1,7 @@
-import puppeteer, { type Browser } from "puppeteer-core";
+import { type Browser } from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
+
+const IS_PROD = process.env.NODE_ENV === "production";
 import * as cheerio from "cheerio";
 
 export interface ConstituencyResult {
@@ -113,11 +115,20 @@ export async function scrapeAllWithProgress(
 
   let browser: Browser | null = null;
   try {
-    browser = await puppeteer.launch({
-      args: chromium.args,
-      executablePath: await chromium.executablePath(),
-      headless: true,
-    });
+    if (IS_PROD) {
+      const puppeteerCore = await import("puppeteer-core");
+      browser = await puppeteerCore.default.launch({
+        args: chromium.args,
+        executablePath: await chromium.executablePath(),
+        headless: true,
+      });
+    } else {
+      const puppeteer = await import("puppeteer");
+      browser = await puppeteer.default.launch({
+        headless: true,
+        args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      });
+    }
 
     // Scrape page 1 first to get the dynamic total page count
     const { rows: firstRows, html: firstHtml } = await scrapePageContent(browser, 1);
