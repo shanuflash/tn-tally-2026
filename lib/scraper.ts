@@ -1,4 +1,4 @@
-import puppeteer from "puppeteer";
+import puppeteer, { type Browser } from "puppeteer";
 import * as cheerio from "cheerio";
 
 export interface ConstituencyResult {
@@ -80,7 +80,7 @@ function parseTotalPages(html: string): number {
 }
 
 async function scrapePageContent(
-  browser: puppeteer.Browser,
+  browser: Browser,
   pageNum: number
 ): Promise<{ rows: ConstituencyResult[]; html: string }> {
   const url = `${BASE_URL}${pageNum}.htm`;
