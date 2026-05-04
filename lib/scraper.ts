@@ -1,6 +1,7 @@
 import { type Browser } from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
 import * as cheerio from "cheerio";
+import { saveToDb, loadFromDb } from "./db";
 
 const IS_PROD = process.env.NODE_ENV === "production";
 
@@ -164,6 +165,8 @@ export async function scrapeAllWithProgress(): Promise<ScraperCache> {
     };
 
     console.log(`[scraper] Done. ${all.length} constituencies across ${totalPages} pages.`);
+    // Persist to Turso so cold starts can seed from DB instantly
+    saveToDb(cache).catch((e) => console.error("[db] Save failed:", e));
     emitProgress({ type: "done", data: cache });
   } catch (e) {
     emitProgress({ type: "error", message: String(e) });
@@ -181,5 +184,15 @@ export async function scrapeAll(): Promise<ScraperCache> {
 }
 
 export function getCache(): ScraperCache | null {
+  return cache;
+}
+
+export async function getCacheOrDb(): Promise<ScraperCache | null> {
+  if (cache) return cache;
+  const dbData = await loadFromDb();
+  if (dbData) {
+    cache = dbData; // seed in-memory cache from DB
+    console.log("[db] Seeded in-memory cache from Turso");
+  }
   return cache;
 }

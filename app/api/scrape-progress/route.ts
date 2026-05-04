@@ -1,4 +1,4 @@
-import { scrapeAllWithProgress, getCache, isScraping, subscribeToProgress } from "@/lib/scraper";
+import { scrapeAllWithProgress, getCacheOrDb, isScraping, subscribeToProgress } from "@/lib/scraper";
 
 export const dynamic = "force-dynamic";
 
@@ -11,9 +11,9 @@ export async function GET() {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
       }
 
-      const cached = getCache();
+      const cached = await getCacheOrDb();
 
-      // Cache is warm — return immediately
+      // Cache is warm (memory or DB) — return immediately
       if (cached) {
         send({ type: "cached", data: cached });
         controller.close();
