@@ -368,15 +368,25 @@ function PartyTable({ tally }: { tally: PartyTally[] }) {
 }
 
 function ConstituencyTable({ constituencies, filter, onFilterChange }: { constituencies: ConstituencyResult[]; filter: string; onFilterChange: (v: string) => void }) {
+  const [statusFilter, setStatusFilter] = useState<"all" | "won" | "counting">("all");
   const q = filter.toLowerCase();
-  const filtered = q
-    ? constituencies.filter((c) =>
-        c.constituency.toLowerCase().includes(q) ||
-        c.leadingCandidate.toLowerCase().includes(q) ||
-        c.leadingParty.toLowerCase().includes(q) ||
-        shortenParty(c.leadingParty).toLowerCase().includes(q)
-      )
-    : constituencies;
+  const filtered = constituencies.filter((c) => {
+    if (statusFilter === "won" && !c.status.toLowerCase().includes("declared")) return false;
+    if (statusFilter === "counting" && c.status.toLowerCase().includes("declared")) return false;
+    if (!q) return true;
+    return (
+      c.constituency.toLowerCase().includes(q) ||
+      c.leadingCandidate.toLowerCase().includes(q) ||
+      c.leadingParty.toLowerCase().includes(q) ||
+      shortenParty(c.leadingParty).toLowerCase().includes(q)
+    );
+  });
+
+  const statusButtons: { key: "all" | "won" | "counting"; label: string }[] = [
+    { key: "all", label: "All" },
+    { key: "won", label: "Won" },
+    { key: "counting", label: "Counting" },
+  ];
 
   return (
     <Card className="border-border/60">
@@ -387,12 +397,25 @@ function ConstituencyTable({ constituencies, filter, onFilterChange }: { constit
               <CardTitle className="text-sm font-semibold">Constituencies</CardTitle>
               <span className="text-xs text-muted-foreground">{filtered.length} of {constituencies.length}</span>
             </div>
-            <Input
-              placeholder="Search…"
-              value={filter}
-              onChange={(e) => onFilterChange(e.target.value)}
-              className="h-8 text-xs sm:max-w-xs"
-            />
+            <div className="flex items-center gap-2">
+              <div className="flex rounded-md border border-border overflow-hidden text-xs">
+                {statusButtons.map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setStatusFilter(key)}
+                    className={`px-2.5 py-1 font-medium transition-colors ${statusFilter === key ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <Input
+                placeholder="Search…"
+                value={filter}
+                onChange={(e) => onFilterChange(e.target.value)}
+                className="h-8 text-xs sm:max-w-xs"
+              />
+            </div>
           </div>
           {filter && (
             <p className="text-[11px] text-muted-foreground/60">
