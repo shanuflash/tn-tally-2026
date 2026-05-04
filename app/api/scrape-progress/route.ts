@@ -1,4 +1,4 @@
-import { scrapeAllWithProgress, getCacheOrDb, isScraping, subscribeToProgress } from "@/lib/scraper";
+import { scrape, getResults, isScraping, subscribeToProgress } from "@/lib/scraper";
 
 export const dynamic = "force-dynamic";
 
@@ -11,18 +11,16 @@ export async function GET() {
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
       }
 
-      const cached = await getCacheOrDb();
-
-      // Cache is warm (memory or DB) — return immediately
+      const cached = await getResults();
       if (cached) {
         send({ type: "cached", data: cached });
         controller.close();
         return;
       }
 
-      // A scrape is already running (from instrumentation) — subscribe to its progress
+      send({ type: "start", total: 0 });
+
       if (isScraping()) {
-        send({ type: "start", total: 0 });
         const unsub = subscribeToProgress((event) => {
           if (event.type === "progress") {
             send({ type: "progress", page: event.page, total: event.total });
@@ -39,10 +37,8 @@ export async function GET() {
         return;
       }
 
-      // Nothing running and no cache — start a fresh scrape
-      send({ type: "start", total: 0 });
       try {
-        const data = await scrapeAllWithProgress();
+        const data = await scrape();
         send({ type: "done", data });
       } catch (e) {
         send({ type: "error", message: String(e) });

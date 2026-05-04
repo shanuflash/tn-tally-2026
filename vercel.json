@@ -2,9 +2,6 @@
   "functions": {
     "app/api/scrape-progress/route.ts": {
       "maxDuration": 300
-    },
-    "app/api/cron/scrape/route.ts": {
-      "maxDuration": 300
     }
   }
 }
