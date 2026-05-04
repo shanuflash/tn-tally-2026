@@ -24,8 +24,29 @@ export interface ScraperCache {
 
 let cache: ScraperCache | null = null;
 let isFetching = false;
-// Resolvers waiting for the current in-progress scrape to finish
-let fetchWaiters: Array<(result: ScraperCache) => void> = [];
+
+// Shared progress listeners — all SSE connections subscribe while a scrape is running
+type ProgressEvent =
+  | { type: "progress"; page: number; total: number }
+  | { type: "done"; data: ScraperCache }
+  | { type: "error"; message: string };
+
+let progressListeners: Array<(event: ProgressEvent) => void> = [];
+
+export function subscribeToProgress(cb: (event: ProgressEvent) => void): () => void {
+  progressListeners.push(cb);
+  return () => {
+    progressListeners = progressListeners.filter((l) => l !== cb);
+  };
+}
+
+export function isScraping(): boolean {
+  return isFetching;
+}
+
+function emitProgress(event: ProgressEvent) {
+  for (const cb of progressListeners) cb(event);
+}
 
 const BASE_URL = "https://results.eci.gov.in/ResultAcGenMay2026/statewiseS22";
 
@@ -91,13 +112,14 @@ async function scrapePageContent(
   }
 }
 
-export async function scrapeAllWithProgress(
-  onProgress?: (page: number, total: number) => void
-): Promise<ScraperCache> {
-  // If already fetching, wait for it to finish instead of returning stale/empty
+export async function scrapeAllWithProgress(): Promise<ScraperCache> {
+  // If already fetching, just wait — progress events will be broadcast to all listeners
   if (isFetching) {
-    return new Promise((resolve) => {
-      fetchWaiters.push(resolve);
+    return new Promise((resolve, reject) => {
+      const unsub = subscribeToProgress((event) => {
+        if (event.type === "done") { unsub(); resolve(event.data); }
+        else if (event.type === "error") { unsub(); reject(new Error(event.message)); }
+      });
     });
   }
 
@@ -124,14 +146,14 @@ export async function scrapeAllWithProgress(
     const totalPages = parseTotalPages(firstHtml);
     console.log(`[scraper] Detected ${totalPages} pages from pagination.`);
 
-    onProgress?.(1, totalPages);
+    emitProgress({ type: "progress", page: 1, total: totalPages });
     const all: ConstituencyResult[] = [...firstRows];
 
     for (let i = 2; i <= totalPages; i++) {
       console.log(`[scraper] Page ${i}/${totalPages}`);
       const { rows } = await scrapePageContent(browser, i);
       all.push(...rows);
-      onProgress?.(i, totalPages);
+      emitProgress({ type: "progress", page: i, total: totalPages });
       await new Promise((r) => setTimeout(r, 800));
     }
 
@@ -142,13 +164,13 @@ export async function scrapeAllWithProgress(
     };
 
     console.log(`[scraper] Done. ${all.length} constituencies across ${totalPages} pages.`);
+    emitProgress({ type: "done", data: cache });
+  } catch (e) {
+    emitProgress({ type: "error", message: String(e) });
+    throw e;
   } finally {
     await browser?.close();
     isFetching = false;
-    // Notify all waiters
-    const waiters = fetchWaiters;
-    fetchWaiters = [];
-    for (const resolve of waiters) resolve(cache!);
   }
 
   return cache!;

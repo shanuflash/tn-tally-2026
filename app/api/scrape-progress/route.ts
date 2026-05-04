@@ -1,10 +1,8 @@
-import { scrapeAllWithProgress, getCache } from "@/lib/scraper";
+import { scrapeAllWithProgress, getCache, isScraping, subscribeToProgress } from "@/lib/scraper";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const SCRAPE_INTERVAL = 5 * 60 * 1000;
-
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
@@ -14,26 +12,41 @@ export async function GET() {
       }
 
       const cached = getCache();
-      const now = Date.now();
-      const age = cached ? now - new Date(cached.fetchedAt).getTime() : Infinity;
 
-      if (cached && age < SCRAPE_INTERVAL) {
+      // Cache is warm — return immediately
+      if (cached) {
         send({ type: "cached", data: cached });
         controller.close();
         return;
       }
 
-      send({ type: "start", total: 0 }); // total unknown until page 1 is scraped
-
-      try {
-        const data = await scrapeAllWithProgress((page, total) => {
-          send({ type: "progress", page, total });
+      // A scrape is already running (from instrumentation) — subscribe to its progress
+      if (isScraping()) {
+        send({ type: "start", total: 0 });
+        const unsub = subscribeToProgress((event) => {
+          if (event.type === "progress") {
+            send({ type: "progress", page: event.page, total: event.total });
+          } else if (event.type === "done") {
+            send({ type: "done", data: event.data });
+            unsub();
+            controller.close();
+          } else if (event.type === "error") {
+            send({ type: "error", message: event.message });
+            unsub();
+            controller.close();
+          }
         });
+        return;
+      }
+
+      // Nothing running and no cache — start a fresh scrape
+      send({ type: "start", total: 0 });
+      try {
+        const data = await scrapeAllWithProgress();
         send({ type: "done", data });
       } catch (e) {
         send({ type: "error", message: String(e) });
       }
-
       controller.close();
     },
   });
