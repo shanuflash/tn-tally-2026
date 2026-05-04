@@ -1,8 +1,8 @@
 import { type Browser } from "puppeteer-core";
 import chromium from "@sparticuz/chromium";
+import * as cheerio from "cheerio";
 
 const IS_PROD = process.env.NODE_ENV === "production";
-import * as cheerio from "cheerio";
 
 export interface ConstituencyResult {
   constituency: string;
@@ -24,6 +24,8 @@ export interface ScraperCache {
 
 let cache: ScraperCache | null = null;
 let isFetching = false;
+// Resolvers waiting for the current in-progress scrape to finish
+let fetchWaiters: Array<(result: ScraperCache) => void> = [];
 
 const BASE_URL = "https://results.eci.gov.in/ResultAcGenMay2026/statewiseS22";
 
@@ -31,16 +33,13 @@ function parsePage(html: string): ConstituencyResult[] {
   const $ = cheerio.load(html);
   const results: ConstituencyResult[] = [];
 
-  // Strip nested tables from a cell before reading text
   const getText = (cell: ReturnType<typeof $>) =>
     cell.clone().find("table").remove().end().text().trim();
 
-  // Party name is in the first <td> of the nested table inside the cell
   const getPartyText = (cell: ReturnType<typeof $>) =>
     cell.find("table td").first().text().trim();
 
   $("table.table-striped.table-bordered tbody tr").each((_, row) => {
-    // Direct children only — avoids rows from nested tooltip tables inside cells
     const cells = $(row).children("td");
     if (cells.length < 8) return;
 
@@ -48,7 +47,6 @@ function parsePage(html: string): ConstituencyResult[] {
     if (!constituency) return;
 
     const constNo = parseInt($(cells[1]).text().trim());
-    // Real constituency rows always have a numeric const number
     if (!constNo) return;
 
     const leadingCandidate = getText($(cells[2]));
@@ -59,17 +57,7 @@ function parsePage(html: string): ConstituencyResult[] {
     const round = getText($(cells[7]));
     const status = cells.length >= 9 ? getText($(cells[8])) : "";
 
-    results.push({
-      constituency,
-      constNo,
-      leadingCandidate,
-      leadingParty,
-      trailingCandidate,
-      trailingParty,
-      margin,
-      round,
-      status,
-    });
+    results.push({ constituency, constNo, leadingCandidate, leadingParty, trailingCandidate, trailingParty, margin, round, status });
   });
 
   return results;
@@ -77,9 +65,8 @@ function parsePage(html: string): ConstituencyResult[] {
 
 function parseTotalPages(html: string): number {
   const $ = cheerio.load(html);
-  // Count <li> children inside ul.pagination.pagination-sm
   const count = $("ul.pagination.pagination-sm li").length;
-  return count > 0 ? count : 12; // fallback to 12
+  return count > 0 ? count : 12;
 }
 
 async function scrapePageContent(
@@ -107,8 +94,11 @@ async function scrapePageContent(
 export async function scrapeAllWithProgress(
   onProgress?: (page: number, total: number) => void
 ): Promise<ScraperCache> {
+  // If already fetching, wait for it to finish instead of returning stale/empty
   if (isFetching) {
-    return cache ?? { constituencies: [], fetchedAt: new Date().toISOString(), totalPages: 12 };
+    return new Promise((resolve) => {
+      fetchWaiters.push(resolve);
+    });
   }
 
   isFetching = true;
@@ -130,7 +120,6 @@ export async function scrapeAllWithProgress(
       });
     }
 
-    // Scrape page 1 first to get the dynamic total page count
     const { rows: firstRows, html: firstHtml } = await scrapePageContent(browser, 1);
     const totalPages = parseTotalPages(firstHtml);
     console.log(`[scraper] Detected ${totalPages} pages from pagination.`);
@@ -156,6 +145,10 @@ export async function scrapeAllWithProgress(
   } finally {
     await browser?.close();
     isFetching = false;
+    // Notify all waiters
+    const waiters = fetchWaiters;
+    fetchWaiters = [];
+    for (const resolve of waiters) resolve(cache!);
   }
 
   return cache!;
