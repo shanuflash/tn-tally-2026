@@ -227,65 +227,65 @@ function ProgressLoader({ page, total }: { page: number; total: number }) {
 function AllianceCard({ a, majority }: { a: AllianceTally; majority: number }) {
   const color = ALLIANCE_COLORS[a.alliance];
   const parties = ALLIANCE_PARTIES[a.alliance];
-  const pct = Math.round((a.total / TOTAL_SEATS) * 100);
+  const wonPct = (a.won / TOTAL_SEATS) * 100;
+  const leadingPct = (a.leading / TOTAL_SEATS) * 100;
+  const majorityPct = (majority / TOTAL_SEATS) * 100;
+  const hasMajority = a.total >= majority;
 
   return (
-    <div className="relative rounded-2xl border border-border/60 bg-card overflow-hidden p-6 flex flex-col gap-4">
-      {/* color bar top */}
-      <div className="absolute inset-x-0 top-0 h-[3px]" style={{ backgroundColor: color }} />
+    <div className="rounded-2xl border border-border/60 bg-card overflow-hidden flex flex-col">
+      <div className="p-5 flex flex-col gap-4 flex-1">
 
-      {/* header */}
-      <div>
-        <div className="flex items-center gap-2 mb-0.5">
-          <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
-          <span className="text-sm font-semibold">{ALLIANCE_LABELS[a.alliance]}</span>
-          {a.total >= majority && (
-            <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: color + "22", color }}>
-              MAJORITY
+        {/* name + majority */}
+        <div className="flex items-center justify-between gap-1">
+          <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">{ALLIANCE_LABELS[a.alliance]}</p>
+          {hasMajority && (
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: color + "20", color }}>
+              ✓ MAJORITY
             </span>
           )}
         </div>
-        <p className="text-xs text-muted-foreground pl-4">{ALLIANCE_SUBLABELS[a.alliance]}</p>
+
+        {/* total + won/leading */}
+        <div className="flex items-center gap-4">
+          <span className="text-6xl font-black tracking-tighter leading-none" style={{ color }}>{a.total}</span>
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-baseline gap-1">
+              <span className="text-lg font-bold leading-none">{a.won}</span>
+              <span className="text-[10px] text-muted-foreground">won</span>
+            </div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-sm font-semibold leading-none text-muted-foreground">{a.leading}</span>
+              <span className="text-[10px] text-muted-foreground">leading</span>
+            </div>
+          </div>
+        </div>
+
+        {/* party chips */}
+        {parties.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {parties.map((p) => (
+              <span key={p} className="text-[10px] font-medium px-1.5 py-0.5 rounded-md"
+                style={{ backgroundColor: color + "15", color }}>
+                {p}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* big number */}
-      <div>
-        <span className="text-6xl font-black tracking-tighter leading-none" style={{ color }}>{a.total}</span>
-        <div className="flex items-center gap-2 mt-1.5">
-          <span className="text-[11px] font-semibold text-foreground">{a.won} won</span>
-          <span className="text-muted-foreground/40">·</span>
-          <span className="text-[11px] text-muted-foreground">{a.leading} leading</span>
+      {/* progress bar pinned to bottom */}
+      <div className="px-5 pb-4 space-y-1.5">
+        <div className="relative h-1.5 w-full bg-muted rounded-full overflow-hidden">
+          <div className="absolute left-0 top-0 h-full transition-all duration-700"
+            style={{ width: `${wonPct}%`, backgroundColor: color }} />
+          <div className="absolute top-0 h-full transition-all duration-700"
+            style={{ left: `${wonPct}%`, width: `${leadingPct}%`, backgroundColor: color + "50" }} />
+          <div className="absolute top-0 h-full w-px bg-foreground/20"
+            style={{ left: `${majorityPct}%` }} />
         </div>
+        <p className="text-[10px] text-muted-foreground">{majority} seats for majority</p>
       </div>
-
-      {/* seat bar */}
-      <div className="space-y-1.5">
-        <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all duration-700"
-            style={{ width: `${pct}%`, backgroundColor: color }}
-          />
-        </div>
-        <div className="flex justify-between text-[10px] text-muted-foreground">
-          <span>{pct}% of seats</span>
-          <span>{majority} for majority</span>
-        </div>
-      </div>
-
-      {/* party chips */}
-      {parties.length > 0 && (
-        <div className="flex flex-wrap gap-1 pt-2 border-t border-border/40">
-          {parties.map((p) => (
-            <span
-              key={p}
-              className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-              style={{ backgroundColor: color + "18", color }}
-            >
-              {p}
-            </span>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -464,13 +464,21 @@ export default function Dashboard() {
   const [filter, setFilter] = useState("");
   const [nextRefreshAt, setNextRefreshAt] = useState<Date | null>(null);
   const [countdown, setCountdown] = useState(0);
+  const [justUpdated, setJustUpdated] = useState(false);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchResults = useCallback(async () => {
     try {
       const res = await fetch("/api/results");
       if (!res.ok) return;
-      setData(await res.json());
+      const newData = await res.json();
+      setData((prev) => {
+        if (prev && prev.fetchedAt !== newData.fetchedAt) {
+          setJustUpdated(true);
+          setTimeout(() => setJustUpdated(false), 3000);
+        }
+        return newData;
+      });
       setError(null);
     } catch { /* keep existing data */ }
   }, []);
@@ -541,7 +549,10 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            {data && !isLoading && (
+            {justUpdated && (
+              <span className="text-emerald-400 font-semibold animate-pulse">New data</span>
+            )}
+            {data && !isLoading && !justUpdated && (
               <span className="hidden sm:block">Updated {new Date(data.fetchedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span>
             )}
             {!isLoading && nextRefreshAt && (
@@ -565,21 +576,21 @@ export default function Dashboard() {
         <main className="max-w-6xl mx-auto px-5 py-8 space-y-8">
 
           {/* Alliance scoreboard */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {allianceTally.map((a) => <AllianceCard key={a.alliance} a={a} majority={majority} />)}
           </div>
 
           {/* Summary strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="flex items-center divide-x divide-border/50">
             {[
               { label: "Total seats", value: data.constituencies.length },
               { label: "Majority mark", value: majority },
               { label: "Results declared", value: declared },
-              { label: "Counting in progress", value: leading },
+              { label: "Counting", value: leading },
             ].map(({ label, value }) => (
-              <div key={label} className="rounded-xl border border-border/60 bg-card px-4 py-3">
-                <p className="text-[11px] text-muted-foreground">{label}</p>
-                <p className="text-2xl font-bold tabular-nums mt-0.5">{value}</p>
+              <div key={label} className="flex-1 px-5 first:pl-0 last:pr-0">
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground/70 font-medium">{label}</p>
+                <p className="text-3xl font-black tabular-nums leading-tight mt-0.5">{value}</p>
               </div>
             ))}
           </div>

@@ -159,12 +159,22 @@ export async function scrape(): Promise<ScraperCache> {
   return cache!;
 }
 
+const CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
+
+function isCacheFresh(c: ScraperCache): boolean {
+  return Date.now() - new Date(c.fetchedAt).getTime() < CACHE_TTL_MS;
+}
+
 export async function getResults(): Promise<ScraperCache | null> {
-  if (cache) return cache;
+  if (cache) {
+    if (isCacheFresh(cache)) return cache;
+    cache = null; // stale — drop in-memory copy so scrape re-runs
+  }
   const dbData = await loadFromDb();
-  if (dbData) {
+  if (dbData && isCacheFresh(dbData)) {
     cache = dbData;
     console.log("[db] Seeded cache from Turso");
+    return cache;
   }
-  return cache;
+  return null; // caller triggers fresh scrape
 }
