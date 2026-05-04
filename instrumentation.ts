@@ -15,7 +15,7 @@ export async function register() {
     // Initial scrape on server start
     refresh();
 
-    // Then every 5 minutes
-    setInterval(refresh, 5 * 60 * 1000);
+    // Then every 2 minutes
+    setInterval(refresh, 2 * 60 * 1000);
   }
 }

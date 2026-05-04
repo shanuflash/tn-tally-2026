@@ -184,11 +184,11 @@ function tallyByAlliance(constituencies: ConstituencyResult[]): AllianceTally[] 
     .filter((a) => a.total > 0);
 }
 
-/** ms until the next wall-clock 5-min boundary (10:00, 10:05, 10:10, …) */
+/** ms until the next wall-clock 2-min boundary (10:00, 10:02, 10:04, …) */
 function msUntilNextSlot(): number {
   const now = new Date();
   const ms = now.getTime();
-  const slotMs = 5 * 60 * 1000;
+  const slotMs = 2 * 60 * 1000;
   return slotMs - (ms % slotMs);
 }
 
