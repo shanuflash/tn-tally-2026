@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { BarChart, Bar, XAxis, YAxis, Cell } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
@@ -235,18 +234,17 @@ function AllianceCard({ a, majority }: { a: AllianceTally; majority: number }) {
   return (
     <div className="rounded-2xl border border-border/60 bg-card overflow-hidden flex flex-col">
       <div className="p-4 sm:p-5 flex flex-col gap-3 flex-1">
-
         {/* name + majority */}
         <div className="flex items-center justify-between gap-1">
           <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">{ALLIANCE_LABELS[a.alliance]}</p>
           {hasMajority && (
-            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{ backgroundColor: color + "20", color }}>
-              ✓ MAJ
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0" style={{ backgroundColor: color + "30", color }}>
+              ✓ Majority
             </span>
           )}
         </div>
 
-        {/* total + won/leading — min-w prevents clipping on small cards */}
+        {/* total + won/leading */}
         <div className="flex items-center gap-3">
           <span className="text-5xl sm:text-6xl font-black tracking-tighter leading-none shrink-0" style={{ color }}>{a.total}</span>
           <div className="flex flex-col gap-1 min-w-0">
@@ -274,14 +272,14 @@ function AllianceCard({ a, majority }: { a: AllianceTally; majority: number }) {
         )}
       </div>
 
-      {/* progress bar pinned to bottom */}
+      {/* progress bar */}
       <div className="px-4 sm:px-5 pb-4 space-y-1.5">
-        <div className="relative h-1.5 w-full bg-muted rounded-full overflow-hidden">
-          <div className="absolute left-0 top-0 h-full transition-all duration-700"
+        <div className="relative h-2 w-full bg-muted/50 rounded-full overflow-hidden">
+          <div className="absolute left-0 top-0 h-full rounded-l-full transition-all duration-700"
             style={{ width: `${wonPct}%`, backgroundColor: color }} />
-          <div className="absolute top-0 h-full transition-all duration-700"
-            style={{ left: `${wonPct}%`, width: `${leadingPct}%`, backgroundColor: color + "50" }} />
-          <div className="absolute top-0 h-full w-px bg-foreground/20"
+          <div className="leading-shimmer absolute top-0 h-full transition-all duration-700"
+            style={{ left: `${wonPct}%`, width: `${leadingPct}%`, backgroundColor: color + "55" }} />
+          <div className="absolute top-0 h-full w-[1.5px] bg-foreground/25"
             style={{ left: `${majorityPct}%` }} />
         </div>
         <p className="text-[10px] text-muted-foreground">{majority} seats for majority</p>
@@ -297,11 +295,13 @@ function PartyChart({ tally }: { tally: PartyTally[] }) {
   return (
     <Card className="border-border/60">
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-semibold">Party tally</CardTitle>
-        <p className="text-xs text-muted-foreground">Solid = won · faded = leading</p>
+        <div className="flex items-baseline justify-between gap-2">
+          <CardTitle className="text-sm font-semibold">Party tally</CardTitle>
+          <p className="text-[11px] text-muted-foreground/60">solid = won · faded = leading</p>
+        </div>
       </CardHeader>
       <CardContent className="pt-0">
-        <ChartContainer config={chartConfig} className="h-64 w-full">
+        <ChartContainer config={chartConfig} className="h-72 w-full">
           <BarChart data={tally} margin={{ top: 4, right: 4, left: -20, bottom: 52 }}>
             <XAxis dataKey="short" tick={{ fontSize: 10 }} angle={-45} textAnchor="end" interval={0} axisLine={false} tickLine={false} />
             <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
@@ -343,8 +343,14 @@ function PartyTable({ tally }: { tally: PartyTally[] }) {
                   <td className="py-2 pr-3 text-muted-foreground">{i + 1}</td>
                   <td className="py-2 pr-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: getPartyColor(p.party, i) }} />
-                      <span className="font-medium">{p.short}</span>
+                      <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: getPartyColor(p.party, i) }} />
+                      <div>
+                        <div className="font-medium">{p.short}</div>
+                        <div className="h-[3px] mt-0.5 rounded-full bg-muted overflow-hidden w-16">
+                          <div className="h-full rounded-full transition-all duration-700"
+                            style={{ width: `${(p.total / TOTAL_SEATS) * 100}%`, backgroundColor: getPartyColor(p.party, i) + "90" }} />
+                        </div>
+                      </div>
                     </div>
                   </td>
                   <td className="py-2 pr-3 text-right font-semibold">{p.won}</td>
@@ -397,7 +403,7 @@ function ConstituencyTable({ constituencies, filter, onFilterChange }: { constit
       <CardContent className="pt-0 px-0">
         <div className="overflow-x-auto max-h-[560px]">
           <table className="w-full text-xs min-w-[540px]">
-            <thead className="sticky top-0 bg-card z-10">
+            <thead className="sticky top-0 bg-card/90 backdrop-blur-sm z-10">
               <tr className="text-muted-foreground border-b border-border">
                 <th className="text-left py-2 px-4 font-medium whitespace-nowrap">No.</th>
                 <th className="text-left py-2 pr-4 font-medium whitespace-nowrap">Constituency</th>
@@ -411,17 +417,32 @@ function ConstituencyTable({ constituencies, filter, onFilterChange }: { constit
               </tr>
             </thead>
             <tbody className="divide-y divide-border/30">
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="py-16 text-center text-muted-foreground text-xs">
+                    No constituencies match “{filter}”
+                  </td>
+                </tr>
+              )}
               {filtered.map((c) => {
                 const isDeclared = c.status.toLowerCase().includes("declared");
-                const allianceColor = ALLIANCE_COLORS[getAlliance(c.leadingParty)];
+                const alliance = getAlliance(c.leadingParty);
+                const allianceColor = ALLIANCE_COLORS[alliance];
                 return (
                   <tr key={`${c.constNo}-${c.constituency}`} className="hover:bg-muted/20 transition-colors">
                     <td className="py-2.5 px-4 text-muted-foreground tabular-nums">{c.constNo}</td>
                     <td className="py-2.5 pr-4 font-medium whitespace-nowrap">{c.constituency}</td>
                     <td className="py-2.5 pr-4">
-                      <Badge variant={isDeclared ? "default" : "secondary"} className="text-[10px] px-1.5 py-0 font-medium">
-                        {isDeclared ? "Won" : "Leading"}
-                      </Badge>
+                      {isDeclared ? (
+                        <span className="inline-flex text-[10px] px-1.5 py-0.5 rounded-md font-semibold"
+                          style={{ backgroundColor: allianceColor + "25", color: allianceColor }}>
+                          Won
+                        </span>
+                      ) : (
+                        <span className="inline-flex text-[10px] px-1.5 py-0.5 rounded-md font-medium text-muted-foreground bg-muted">
+                          Leading
+                        </span>
+                      )}
                     </td>
                     <td className="py-2.5 pr-4 text-right font-mono font-semibold tabular-nums whitespace-nowrap">
                       {c.margin.toLocaleString("en-IN")}
@@ -558,24 +579,40 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
-        <div className="max-w-6xl mx-auto px-4 sm:px-5 h-14 flex items-center justify-between gap-4">
+        <div className="max-w-6xl mx-auto px-4 sm:px-5 h-16 flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-sm font-bold tracking-tight leading-none">TN Elections 2026</h1>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Live · Election Commission of India</p>
+            <h1 className="text-base font-bold tracking-tight leading-none">TN Elections 2026</h1>
+            <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1.5">
+              <span className="relative flex h-1.5 w-1.5 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500" />
+              </span>
+              Live · Election Commission of India
+            </p>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 text-xs text-muted-foreground">
-            {justUpdated && (
-              <span className="text-emerald-400 font-semibold animate-pulse">Updated</span>
-            )}
-            {data && !isLoading && !justUpdated && (
-              <span className="text-muted-foreground">
-                {new Date(data.fetchedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
-              </span>
-            )}
-            {!isLoading && nextRefreshAt && (
-              <span className="font-mono tabular-nums text-muted-foreground/70" title={`Next refresh at ${nextRefreshAt.toLocaleTimeString("en-IN")}`}>
-                {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, "0")}
-              </span>
+          <div className="text-xs text-muted-foreground text-right">
+            {justUpdated ? (
+              <span className="text-emerald-400 font-semibold animate-pulse">Updated ✓</span>
+            ) : (
+              <>
+                {/* mobile: just the countdown */}
+                {!isLoading && nextRefreshAt && (
+                  <span className="font-mono tabular-nums sm:hidden text-muted-foreground/60">
+                    {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, "0")}
+                  </span>
+                )}
+                {/* sm+: full updated + countdown */}
+                <span className="tabular-nums hidden sm:inline">
+                  {data && !isLoading && (
+                    <>Updated {new Date(data.fetchedAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</>
+                  )}
+                  {!isLoading && nextRefreshAt && (
+                    <span className="text-muted-foreground/50">
+                      {data && !isLoading ? " · " : ""}in {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, "0")}
+                    </span>
+                  )}
+                </span>
+              </>
             )}
           </div>
         </div>
@@ -593,7 +630,7 @@ export default function Dashboard() {
         <main className="max-w-6xl mx-auto px-4 sm:px-5 py-6 sm:py-8 space-y-6 sm:space-y-8">
 
           {/* Alliance scoreboard */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {allianceTally.map((a) => <AllianceCard key={a.alliance} a={a} majority={majority} />)}
           </div>
 
@@ -606,7 +643,7 @@ export default function Dashboard() {
               { label: "Counting", value: leading },
             ].map(({ label, value }) => (
               <div key={label}>
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground/70 font-medium">{label}</p>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground/60 font-medium">{label}</p>
                 <p className="text-3xl font-black tabular-nums leading-tight mt-0.5">{value}</p>
               </div>
             ))}
