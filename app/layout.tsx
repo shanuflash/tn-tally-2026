@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "India Election Results Dashboard",
-  description: "Live election results from the Election Commission of India",
+  title: "TN Tally 2026",
+  description: "Live Tamil Nadu election results — constituency-wise seat tally, alliance standings, and party breakdown.",
 };
 
 export default function RootLayout({
