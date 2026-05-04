@@ -225,7 +225,7 @@ function ProgressLoader({ page, total }: { page: number; total: number }) {
           </div>
         )}
       </div>
-      <p className="text-xs text-muted-foreground">First load takes ~60s · auto-refreshes every 5 min</p>
+      <p className="text-xs text-muted-foreground">First load takes ~60s · auto-refreshes every 2 min</p>
     </div>
   );
 }
