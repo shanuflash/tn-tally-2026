@@ -4,7 +4,11 @@ import { getResults } from "@/lib/scraper";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const data = await getResults();
-  if (!data) return NextResponse.json({ error: "No data yet" }, { status: 503 });
-  return NextResponse.json(data);
+  const freshData = await getResults(false);
+  if (freshData) return NextResponse.json(freshData);
+
+  const staleData = await getResults(true);
+  if (staleData) return NextResponse.json({ ...staleData, isStale: true });
+
+  return NextResponse.json({ error: "No data yet" }, { status: 503 });
 }

@@ -24,6 +24,7 @@ interface ApiResponse {
   constituencies: ConstituencyResult[];
   fetchedAt: string;
   totalPages: number;
+  isStale?: boolean;
 }
 
 interface PartyTally {
@@ -503,6 +504,7 @@ export default function Dashboard() {
   const [nextRefreshAt, setNextRefreshAt] = useState<Date | null>(null);
   const [countdown, setCountdown] = useState(0);
   const [justUpdated, setJustUpdated] = useState(false);
+  const [bgUpdating, setBgUpdating] = useState(false);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchResults = useCallback(async () => {
@@ -534,12 +536,23 @@ export default function Dashboard() {
     async function initialLoad() {
       const res = await fetch("/api/results").catch(() => null);
       setChecking(false);
+      
+      let initialData: ApiResponse | null = null;
       if (res?.ok) {
-        setData(await res.json());
-        scheduleNextFetch();
-        return;
+        initialData = await res.json();
+        setData(initialData);
+        if (!initialData?.isStale) {
+          scheduleNextFetch();
+          return;
+        }
       }
-      setLoadingPage(1);
+      
+      if (!initialData) {
+        setLoadingPage(1);
+      } else {
+        setBgUpdating(true);
+      }
+      
       const es = new EventSource("/api/scrape-progress");
       es.onmessage = (e) => {
         const msg = JSON.parse(e.data);
@@ -547,18 +560,27 @@ export default function Dashboard() {
           setData(msg.data);
           if (msg.data?.totalPages) setTotalPages(msg.data.totalPages);
           setLoadingPage(0);
+          setBgUpdating(false);
           es.close();
           scheduleNextFetch();
         } else if (msg.type === "progress") {
           setTotalPages(msg.total);
-          setLoadingPage(msg.page);
+          if (!initialData) setLoadingPage(msg.page);
         } else if (msg.type === "error") {
           setError(msg.message);
           setLoadingPage(0);
+          setBgUpdating(false);
           es.close();
+          if (initialData) scheduleNextFetch();
         }
       };
-      es.onerror = () => { setError("Connection lost. Try refreshing."); setLoadingPage(0); es.close(); };
+      es.onerror = () => { 
+        setError("Connection lost. Try refreshing."); 
+        setLoadingPage(0); 
+        setBgUpdating(false);
+        es.close(); 
+        if (initialData) scheduleNextFetch();
+      };
     }
     initialLoad();
     return () => { if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current); };
@@ -590,8 +612,13 @@ export default function Dashboard() {
               Live · Election Commission of India
             </p>
           </div>
-          <div className="text-xs text-muted-foreground text-right">
-            {justUpdated ? (
+          <div className="text-xs text-muted-foreground text-right flex items-center gap-2">
+            {bgUpdating ? (
+              <span className="flex items-center gap-1.5 animate-pulse text-muted-foreground">
+                <span className="h-3 w-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
+                <span className="hidden sm:inline">Updating in background…</span>
+              </span>
+            ) : justUpdated ? (
               <span className="text-emerald-400 font-semibold animate-pulse">Updated ✓</span>
             ) : (
               <>

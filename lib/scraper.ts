@@ -165,16 +165,20 @@ function isCacheFresh(c: ScraperCache): boolean {
   return Date.now() - new Date(c.fetchedAt).getTime() < CACHE_TTL_MS;
 }
 
-export async function getResults(): Promise<ScraperCache | null> {
+export async function getResults(includeStale = false): Promise<ScraperCache | null> {
+  if (!cache) {
+    const dbData = await loadFromDb();
+    if (dbData) {
+      cache = dbData;
+      console.log("[db] Seeded cache from Turso");
+    }
+  }
+
   if (cache) {
-    if (isCacheFresh(cache)) return cache;
-    cache = null; // stale — drop in-memory copy so scrape re-runs
+    if (isCacheFresh(cache) || includeStale) {
+      return cache;
+    }
   }
-  const dbData = await loadFromDb();
-  if (dbData && isCacheFresh(dbData)) {
-    cache = dbData;
-    console.log("[db] Seeded cache from Turso");
-    return cache;
-  }
+
   return null; // caller triggers fresh scrape
 }
