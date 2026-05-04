@@ -509,7 +509,7 @@ export default function Dashboard() {
 
   const fetchResults = useCallback(async () => {
     try {
-      const res = await fetch("/api/results");
+      const res = await fetch(`/api/results?t=${Date.now()}`, { cache: "no-store" });
       if (!res.ok) return;
       const newData = await res.json();
       setData((prev) => {
@@ -534,7 +534,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     async function initialLoad() {
-      const res = await fetch("/api/results").catch(() => null);
+      const res = await fetch(`/api/results?t=${Date.now()}`, { cache: "no-store" }).catch(() => null);
       setChecking(false);
       
       let initialData: ApiResponse | null = null;
@@ -553,7 +553,7 @@ export default function Dashboard() {
         setBgUpdating(true);
       }
       
-      const es = new EventSource("/api/scrape-progress");
+      const es = new EventSource(`/api/scrape-progress?t=${Date.now()}`);
       es.onmessage = (e) => {
         const msg = JSON.parse(e.data);
         if (msg.type === "cached" || msg.type === "done") {
