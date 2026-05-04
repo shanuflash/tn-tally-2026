@@ -110,7 +110,7 @@ export async function scrapeAllWithProgress(
 
   isFetching = true;
 
-  let browser: puppeteer.Browser | null = null;
+  let browser: Browser | null = null;
   try {
     browser = await puppeteer.launch({
       headless: true,
