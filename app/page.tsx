@@ -530,6 +530,8 @@ export default function Dashboard() {
   const [bgUpdating, setBgUpdating] = useState(false);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [manualRefreshing, setManualRefreshing] = useState(false);
+
   const fetchResults = useCallback(async () => {
     try {
       const res = await fetch(`/api/results?t=${Date.now()}`, { cache: "no-store" });
@@ -554,6 +556,39 @@ export default function Dashboard() {
     setCountdown(Math.floor(ms / 1000));
     refreshTimerRef.current = setTimeout(() => { fetchResults(); scheduleNextFetch(); }, ms);
   }, [fetchResults]);
+
+  const manualRefresh = useCallback(() => {
+    if (manualRefreshing) return;
+    setManualRefreshing(true);
+    setBgUpdating(true);
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    const es = new EventSource(`/api/scrape-progress?t=${Date.now()}`);
+    es.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === "cached" || msg.type === "done") {
+        setData(msg.data);
+        if (msg.data?.totalPages) setTotalPages(msg.data.totalPages);
+        setBgUpdating(false);
+        setManualRefreshing(false);
+        setJustUpdated(true);
+        setTimeout(() => setJustUpdated(false), 3000);
+        es.close();
+        scheduleNextFetch();
+      } else if (msg.type === "error") {
+        setError(msg.message);
+        setBgUpdating(false);
+        setManualRefreshing(false);
+        es.close();
+        scheduleNextFetch();
+      }
+    };
+    es.onerror = () => {
+      setBgUpdating(false);
+      setManualRefreshing(false);
+      es.close();
+      scheduleNextFetch();
+    };
+  }, [manualRefreshing, scheduleNextFetch]);
 
   useEffect(() => {
     async function initialLoad() {
@@ -636,6 +671,13 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="text-xs text-muted-foreground text-right flex items-center gap-2">
+            <button
+              onClick={manualRefresh}
+              disabled={manualRefreshing || bgUpdating || isLoading}
+              className="h-7 px-2.5 rounded-md border border-border text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              {manualRefreshing ? "Refreshing…" : "Refresh"}
+            </button>
             {bgUpdating ? (
               <span className="flex items-center gap-1.5 animate-pulse text-muted-foreground">
                 <span className="h-3 w-3 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin" />
