@@ -110,6 +110,13 @@ const ALLIANCE_COLORS = { DMK: "#E63946", AIADMK: "#2DC653", TVK: "#06D6A0", OTH
 const ALLIANCE_LABELS = { DMK: "DMK Alliance", AIADMK: "AIADMK Alliance", TVK: "TVK", OTHER: "Others" };
 const ALLIANCE_SUBLABELS = { DMK: "Secular Progressive Alliance", AIADMK: "NDA Tamil Nadu", TVK: "Contesting independently", OTHER: "" };
 
+const ALLIANCE_PARTIES: Record<"DMK" | "AIADMK" | "TVK" | "OTHER", string[]> = {
+  DMK: ["DMK", "INC", "VCK", "CPI", "CPM", "IUML", "MDMK", "MMK", "KMDK", "AIFB"],
+  AIADMK: ["AIADMK", "BJP", "PMK", "TMC(M)", "IJK"],
+  TVK: ["TVK"],
+  OTHER: [],
+};
+
 const PARTY_COLORS: Record<string, string> = {
   DMK: "#E63946", AIADMK: "#2DC653", BJP: "#FF6B35", INC: "#1A56DB",
   VCK: "#9B2335", CPI: "#D62828", CPM: "#C77DFF", PMK: "#F4A261",
@@ -213,6 +220,7 @@ function ProgressLoader({ page, total }: { page: number; total: number }) {
 
 function AllianceCard({ a }: { a: AllianceTally }) {
   const color = ALLIANCE_COLORS[a.alliance];
+  const parties = ALLIANCE_PARTIES[a.alliance];
   return (
     <Card className="relative overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm">
       <div className="absolute inset-x-0 top-0 h-0.5" style={{ backgroundColor: color }} />
@@ -233,6 +241,19 @@ function AllianceCard({ a }: { a: AllianceTally }) {
           <span><span className="font-medium text-foreground">{a.leading}</span> leading</span>
           <span className="ml-auto"><span className="font-medium text-foreground">{a.total}</span> total</span>
         </div>
+        {parties.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-3 pt-3 border-t border-border/40">
+            {parties.map((p) => (
+              <span
+                key={p}
+                className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold"
+                style={{ backgroundColor: color + "18", color }}
+              >
+                {p}
+              </span>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
