@@ -250,10 +250,13 @@ function AllianceCard({ a, majority }: { a: AllianceTally; majority: number }) {
 
       {/* big number */}
       <div className="flex items-end gap-3">
-        <span className="text-6xl font-black tracking-tighter leading-none" style={{ color }}>{a.total}</span>
-        <div className="mb-1 space-y-0.5">
-          <p className="text-xs text-muted-foreground"><span className="font-semibold text-foreground">{a.won}</span> won</p>
-          <p className="text-xs text-muted-foreground"><span className="font-semibold text-foreground">{a.leading}</span> leading</p>
+        <div>
+          <span className="text-6xl font-black tracking-tighter leading-none" style={{ color }}>{a.won}</span>
+          <p className="text-[11px] text-muted-foreground mt-1">seats won</p>
+        </div>
+        <div className="mb-2 pl-2 border-l border-border/50">
+          <p className="text-xl font-bold tabular-nums text-muted-foreground">+{a.leading}</p>
+          <p className="text-[11px] text-muted-foreground">leading</p>
         </div>
       </div>
 
@@ -266,8 +269,8 @@ function AllianceCard({ a, majority }: { a: AllianceTally; majority: number }) {
           />
         </div>
         <div className="flex justify-between text-[10px] text-muted-foreground">
-          <span>{pct}% of seats</span>
-          <span>{TOTAL_SEATS / 2 + 1} needed for majority</span>
+          <span>{a.total} total · {pct}% of seats</span>
+          <span>{majority} for majority</span>
         </div>
       </div>
 
