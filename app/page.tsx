@@ -118,10 +118,20 @@ const ALLIANCE_PARTIES: Record<"DMK" | "AIADMK" | "TVK" | "OTHER", string[]> = {
 };
 
 const PARTY_COLORS: Record<string, string> = {
-  DMK: "#E63946", AIADMK: "#2DC653", BJP: "#FF6B35", INC: "#1A56DB",
-  VCK: "#9B2335", CPI: "#D62828", CPM: "#C77DFF", PMK: "#F4A261",
-  IUML: "#00B4D8", MDMK: "#FFB703", TVK: "#06D6A0", NTK: "#FF99C8",
-  MNM: "#52B788", IND: "#6b7280",
+  DMK: "#FF0000",     // Red (flag primary)
+  AIADMK: "#10B981",  // Green (distinct from DMK red; party uses black+red but green is used on dashboards)
+  TVK: "#8B0000",     // Dark maroon (flag top/bottom band)
+  BJP: "#F97D09",     // Saffron/orange (flag primary)
+  INC: "#138808",     // Congress green (wheel)
+  VCK: "#0099FF",     // Sky blue (flag primary)
+  CPI: "#CC0000",     // Communist red (slightly darker)
+  CPM: "#E53E3E",     // Communist red (slightly different shade)
+  PMK: "#2563EB",     // Blue (flag top band)
+  IUML: "#006600",    // Dark green (flag primary)
+  MDMK: "#B91C1C",    // Deep red (flag)
+  NTK: "#DC2626",     // Red (flag)
+  MNM: "#7C3AED",     // Purple (torch symbol)
+  IND: "#6b7280",     // Gray
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
